@@ -4,10 +4,9 @@ const PORT = process.env.PORT || 10000;
 
 app.use(express.json());
 
-// This array acts as your live database
 let booksCollection = [];
 
-// GET Route - Formatted exactly like the reference photo
+// GET Route - Matches the black reference photo format perfectly
 app.get('/api/v1/books', (req, res) => {
     res.status(200).json({
         status: "success",
@@ -16,26 +15,34 @@ app.get('/api/v1/books', (req, res) => {
     });
 });
 
-// POST Route - Maps incoming data to match the exact keys from the photo
+// POST Route - Flexible parsing to handle C# payload structures smoothly
 app.post('/api/v1/books', (req, res) => {
-    const { Id, Title, Author, Genre, IsAvailable, Year } = req.body;
+    // Read properties whether they start with lowercase or uppercase letters
+    const id = req.body.Id !== undefined ? req.body.Id : req.body.id;
+    const title = req.body.Title || req.body.title;
+    const author = req.body.Author || req.body.author;
+    const genre = req.body.Genre || req.body.genre;
+    const available = req.body.IsAvailable !== undefined ? req.body.IsAvailable : req.body.available;
+    const year = req.body.Year !== undefined ? req.body.Year : req.body.publishedYear;
 
-    // Prevention check: Don't add the book if it's already in the collection
-    const bookExists = booksCollection.some(b => b.id === Id);
+    if (!id) {
+        return res.status(400).json({ message: "Invalid data received: Missing ID." });
+    }
+
+    // Duplicate check
+    const bookExists = booksCollection.some(b => b.id === id);
     
     if (!bookExists) {
-        // Here we build the exact structure seen in your classmate's photo
         booksCollection.push({
-            id: Id,
-            title: Title,
-            author: Author,
-            genre: Genre,
-            available: IsAvailable,
-            publishedYear: Year // Renames 'Year' to 'publishedYear' like the photo
+            id: Number(id),
+            title: title,
+            author: author,
+            genre: genre || "",
+            available: available === true || available === 'True',
+            publishedYear: Number(year)
         });
         res.status(201).json({ message: "Book created successfully." });
     } else {
-        // If it's a duplicate, just reply with a 200 OK so your ETL app doesn't break
         res.status(200).json({ message: "Book already exists, skipping duplicate." });
     }
 });
